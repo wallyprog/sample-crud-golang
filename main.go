@@ -3,13 +3,15 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"net/http"
 )
 
 type Book struct {
-	Id    int
-	Title string
-	Auth  string
+	Id    int    `json:"id"`
+	Title string `json:"title"`
+	Auth  string `json:"auth"`
 }
 
 var Books []Book = []Book{
@@ -30,22 +32,41 @@ var Books []Book = []Book{
 	},
 }
 
-func mainRoute(rw http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(rw, "Hello World")
+func bookRoutes(rw http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		listBook(rw, r)
+	} else if r.Method == "POST" {
+		createBook(rw, r)
+	}
 }
 
 func listBook(rw http.ResponseWriter, r *http.Request) {
+	rw.Header().Set("Content-Type", "application/json")
 	encoder := json.NewEncoder(rw)
 	encoder.Encode(Books)
 
 }
 
+func createBook(rw http.ResponseWriter, r *http.Request) {
+	rw.Header().Set("Content-Type", "application/json")
+	body, erro := ioutil.ReadAll(r.Body)
+	if erro != nil {
+		// catch
+	}
+	var newBook Book
+	json.Unmarshal(body, &newBook)
+	newBook.Id = len(Books) + 1
+	Books = append(Books, newBook)
+
+	encoder := json.NewEncoder(rw)
+	encoder.Encode(newBook)
+}
+
 func configServer() {
-	http.HandleFunc("/", mainRoute)
-	http.HandleFunc("/books", listBook)
+	http.HandleFunc("/books", bookRoutes)
 
 	fmt.Println("Servidor esta rodando na porta 8000")
-	http.ListenAndServe(":8000", nil) // DefaultServerMux
+	log.Fatal(http.ListenAndServe(":8000", nil)) // DefaultServerMux
 }
 
 func main() {
